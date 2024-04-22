@@ -33,8 +33,8 @@ jobs:
                     POSTGRES_DB: postgres
                     # When you map ports using the ports keyword, GitHub uses the --publish command to publish the container’s ports to the Docker host
                     # Opens tcp port 5432 on the host and service container
-                    ports:
-                        - 5432:5432
+                ports:
+                    - 5432:5432
         steps:
             # Downloads a copy of the code in your repository before running CI tests
             - name: Check out repository code
@@ -92,14 +92,14 @@ jobs:
         name: Clippy
         runs-on: ubuntu-latest
         services:
-        postgres:
-            image: postgres:14
-            env:
-                POSTGRES_USER: postgres
-                POSTGRES_PASSWORD: password
-                POSTGRES_DB: postgres
-            ports:
-                - 5432:5432
+            postgres:
+                image: postgres:14
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: password
+                    POSTGRES_DB: postgres
+                ports:
+                    - 5432:5432
         steps:
             - uses: actions/checkout@v3
             - uses: dtolnay/rust-toolchain@stable

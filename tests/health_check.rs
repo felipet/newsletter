@@ -1,10 +1,12 @@
 /// Integration tests of the app's endpoints.
-
 use actix_web::rt::spawn;
+use newsletter::{
+    configuration::{get_configuration, DatabaseSettings},
+    startup::run,
+};
 use reqwest;
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
-use sqlx::{PgPool, PgConnection, Executor, Connection};
-use newsletter::{configuration::{get_configuration, DatabaseSettings}, startup::run};
 use uuid::Uuid;
 
 pub struct TestApp {
@@ -23,10 +25,7 @@ async fn spawn_app() -> TestApp {
     configuration.database.database_name = Uuid::new_v4().to_string();
     let connection_pool = configure_database(&configuration.database).await;
 
-
-
-    let server = run(listener, connection_pool.clone())
-        .expect("Failed to bind address");
+    let server = run(listener, connection_pool.clone()).expect("Failed to bind address");
     let _ = spawn(server);
 
     TestApp {
@@ -113,7 +112,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     let test_cases = vec![
         ("name=jane%20doe", "missing the email"),
         ("email=jane_doe%40mail.com", "missing the name"),
-        ("", "missing both name and email")
+        ("", "missing both name and email"),
     ];
 
     for (invalid_body, error_message) in test_cases {

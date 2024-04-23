@@ -6,12 +6,13 @@
 /// newsletter.
 use actix_web::{post, web, HttpResponse};
 use chrono::Utc;
-use serde;
+use log::{error, info};
+use serde::Deserialize;
 use sqlx::{self, PgPool};
 use uuid::Uuid;
 
 /// Data that is included in the form that comes along the POST for the endpoint.
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 struct FormData {
     email: String,
     name: String,
@@ -32,6 +33,7 @@ struct FormData {
 /// - An instance of the DB's driver to issue the INSERT operation of the new subscription.
 #[post("/subscriptions")]
 pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
+    info!("Saving new subscriber details in the DB");
     // Insert the data from the form into the DB.
     match sqlx::query!(
         r#"
@@ -47,9 +49,12 @@ pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> Ht
     .execute(pool.get_ref())
     .await
     {
-        Ok(_) => HttpResponse::Ok().finish(),
+        Ok(_) => {
+            info!("New subscriber details have been saved");
+            HttpResponse::Ok().finish()
+        }
         Err(e) => {
-            println!("Failed to execute query: {}", e);
+            error!("Failed to execute query: {:?}", e);
             HttpResponse::InternalServerError().finish()
         }
     }

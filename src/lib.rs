@@ -1,5 +1,6 @@
 pub mod configuration;
 pub mod startup;
+pub mod telemetry;
 
 mod routes {
     mod health_check;

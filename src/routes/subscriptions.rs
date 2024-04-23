@@ -6,9 +6,9 @@
 /// newsletter.
 use actix_web::{post, web, HttpResponse};
 use chrono::Utc;
-use log::{error, info};
 use serde::Deserialize;
 use sqlx::{self, PgPool};
+use tracing::{error, info_span, Instrument};
 use uuid::Uuid;
 
 /// Data that is included in the form that comes along the POST for the endpoint.
@@ -34,13 +34,15 @@ struct FormData {
 #[post("/subscriptions")]
 pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
     let request_id = Uuid::new_v4();
-    info!(
-        "request_id {} - Adding '{}' '{}' as a new subscriber.",
-        request_id,
-        form.email,
-        form.name,
+    let request_span = info_span!(
+        "Adding as a new subscriber.",
+        %request_id,
+        subscriber_email = %form.email,
+        subscriber_name = %form.name,
     );
-    info!("request_id {request_id} - Saving new subscriber details in the database.");
+    let _request_span_guard = request_span.enter();
+
+    let query_span = info_span!("Saving new subscriber details in the database.");
     // Insert the data from the form into the DB.
     match sqlx::query!(
         r#"
@@ -54,14 +56,15 @@ pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> Ht
     )
     // Pass an immutable reference to the DB's driver.
     .execute(pool.get_ref())
+    .instrument(query_span)
     .await
     {
         Ok(_) => {
-            info!("request_id {request_id} - New subscriber details have been saved.");
+            info_span!("New subscriber details have been saved.");
             HttpResponse::Ok().finish()
         }
         Err(e) => {
-            error!("request_id {request_id} - Failed to execute query: {:?}.", e);
+            error!("Failed to execute query: {:?}.", e);
             HttpResponse::InternalServerError().finish()
         }
     }

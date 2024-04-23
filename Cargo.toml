@@ -10,9 +10,11 @@ authors = ["Felipe Torres González <torresfelipex1@gmail.com>"]
 actix-web = "4"
 chrono = "0.4.15"
 config = "0.11.0"
-env_logger = "0.11.3"
-log = "0.4.21"
 serde = { version = "1", features = ["derive"]}
+tracing = { version = "0.1", features = ["log"] }
+tracing-bunyan-formatter = "0.3"
+tracing-log = "0.1"
+tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
 uuid = { version = "0.8.1", features = ["v4"] }
 
 [dev-dependencies]

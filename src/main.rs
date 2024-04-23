@@ -1,13 +1,13 @@
 use newsletter::configuration::get_configuration;
 use newsletter::startup::run;
+use newsletter::telemetry::{get_subscriber, init_subscriber};
 use sqlx::PgPool;
 use std::net::TcpListener;
-use env_logger::Env;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // Set the logger.
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    let subscriber = get_subscriber("newsletter".into(), "info".into());
+    init_subscriber(subscriber);
 
     let configuration = get_configuration().expect("Failed to read configuration");
     let connection_string = configuration.database.connection_string();

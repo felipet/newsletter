@@ -1,9 +1,10 @@
 /// Module that includes helper functions to start the **newsletter** application.
 ///
 use crate::routes;
-use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer};
+use actix_web::{dev::Server, web, App, HttpServer};
 use sqlx::PgPool;
 use std::net::TcpListener;
+use tracing_actix_web::TracingLogger;
 
 /// Create a new HttpServer instance.
 ///
@@ -22,7 +23,7 @@ pub fn run(listener: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Er
     let server = HttpServer::new(move || {
         App::new()
             // Add the Logger middleware.
-            .wrap(Logger::default())
+            .wrap(TracingLogger::default())
             // Get health_check endpoint.
             .service(routes::health_check)
             // Post subscribe endpoint.

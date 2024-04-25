@@ -1,7 +1,8 @@
-# Configuration file
-application_port: 9090
+#! configuration/base.yaml
+application:
+  port: 9090
 database:
-  host: "127.0.0.1"
+  host: "localhost"
   port: 5432
   username: "postgres"
   password: "password"

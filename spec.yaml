@@ -1,0 +1,24 @@
+#! spec.yaml
+name: newsletter
+region: fra1
+services:
+  - name: newsletter
+    dockerfile_path: Dockerfile
+    source_dir: .
+    github:
+      branch: main
+      deploy_on_push: true
+      repo: felipet/newsletter
+    health_check:
+      http_path: /health_check
+    http_port: 9090
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+databases:
+  - engine: PG
+    name: newsletter
+    num_nodes: 1
+    size: db-s-dev-database
+    version: "12"

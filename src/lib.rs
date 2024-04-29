@@ -1,5 +1,4 @@
 pub mod configuration;
-pub mod domain;
 pub mod startup;
 pub mod telemetry;
 
@@ -10,3 +9,15 @@ mod routes {
     pub use health_check::*;
     pub use subscriptions::*;
 }
+
+mod domain {
+    mod new_subscriber;
+    mod subscriber_email;
+    mod subscriber_name;
+
+    pub use new_subscriber::NewSubscriber;
+    pub use subscriber_email::SubscriberEmail;
+    pub use subscriber_name::SubscriberName;
+}
+
+pub use domain::NewSubscriber;

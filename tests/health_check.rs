@@ -152,3 +152,32 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
         );
     }
 }
+
+#[actix_web::test]
+async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
+    let test_app = spawn_app().await;
+    let client = reqwest::Client::new();
+    let test_cases = vec![
+        ("name=&email=jane_doe%40mail.com", "empty name"),
+        ("name=Jane&email=", "empty email"),
+        ("name=Jane&email=not-an-email", "invalid email"),
+        ("name=Jane-&email=not-an-email", "invalid name"),
+    ];
+
+    for (body, description) in test_cases {
+        let response = client
+            .post(&format!("{}/subscriptions", &test_app.address))
+            .header("Content-Type", "application/x-www/form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request.");
+
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "The API did not return a 400 Bad Request when the payload was {}",
+            description
+        );
+    }
+}

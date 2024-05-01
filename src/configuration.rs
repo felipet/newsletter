@@ -21,14 +21,14 @@ use sqlx::{
 /// - [Settings::application_port]: the port in which the application will listen to.
 ///
 /// The `struct` derives the [serde::Deserialize] trait.
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
     pub email_client: EmailClientSettings,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct ApplicationSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
@@ -46,7 +46,7 @@ pub struct ApplicationSettings {
 /// - [DatabaseSettings::port] to keep the port in which the DB server is listening.
 /// - [DatabaseSettings::host] to keep the host in which the DB server is running.
 /// - [DatabaseSettings::database_name] to keep the name of the DB schema.
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct DatabaseSettings {
     pub username: String,
     pub password: Secret<String>,
@@ -57,7 +57,7 @@ pub struct DatabaseSettings {
     pub require_ssl: bool,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct EmailClientSettings {
     pub base_url: String,
     pub sender_email: String,

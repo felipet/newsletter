@@ -1,14 +1,14 @@
 use crate::configuration::DatabaseSettings;
+use crate::configuration::Settings;
 /// Module that includes helper functions to start the **newsletter** application.
 ///
 use crate::routes;
 use crate::EmailClient;
 use actix_web::{dev::Server, web, App, HttpServer};
+use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
-use sqlx::postgres::PgPoolOptions;
-use crate::configuration::Settings;
 
 // A type to hold the newly built server and its port
 pub struct Application {
@@ -46,10 +46,10 @@ impl Application {
         let port = listener.local_addr().unwrap().port();
         let server = run(listener, connection_pool, email_client)?;
 
-        Ok(Self {port, server})
+        Ok(Self { port, server })
     }
 
-    pub fn port (&self) -> u16 {
+    pub fn port(&self) -> u16 {
         self.port
     }
 
@@ -97,11 +97,8 @@ pub fn run(
     Ok(server)
 }
 
-pub fn get_connection_pool(
-    configuration: &DatabaseSettings
-) -> PgPool {
+pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
     PgPoolOptions::new()
         .connect_timeout(std::time::Duration::from_secs(2))
         .connect_lazy_with(configuration.with_db())
 }
-

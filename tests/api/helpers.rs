@@ -1,11 +1,11 @@
 use actix_web::rt::spawn;
-use newsletter::startup::get_connection_pool;
-use newsletter::telemetry::{get_subscriber, init_subscriber};
 use newsletter::configuration::{get_configuration, DatabaseSettings};
+use newsletter::startup::get_connection_pool;
+use newsletter::startup::Application;
+use newsletter::telemetry::{get_subscriber, init_subscriber};
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
-use newsletter::startup::Application;
 
 // Ensure that the `tracing` stack is only initialised once using `once_cell`
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -57,7 +57,9 @@ pub async fn spawn_app() -> TestApp {
     // Create and migrate the DB.
     configure_database(&configuration.database).await;
 
-    let application = Application::build(configuration.clone()).await.expect("Failed to build application");
+    let application = Application::build(configuration.clone())
+        .await
+        .expect("Failed to build application");
 
     let address = format!("http://127.0.0.1:{}", application.port());
 

@@ -1,6 +1,7 @@
 /// Integration tests of the app's endpoints.
 use actix_web::rt::spawn;
 use newsletter::telemetry::{get_subscriber, init_subscriber};
+use newsletter::EmailClient;
 use newsletter::{
     configuration::{get_configuration, DatabaseSettings},
     startup::run,
@@ -45,7 +46,21 @@ async fn spawn_app() -> TestApp {
     configuration.database.database_name = Uuid::new_v4().to_string();
     let connection_pool = configure_database(&configuration.database).await;
 
-    let server = run(listener, connection_pool.clone()).expect("Failed to bind address");
+    // Build a new email client.
+    let sender_email = configuration
+        .email_client
+        .sender()
+        .expect("Invalid sender email address.");
+    let timeout = configuration.email_client.timeout();
+    let email_client = EmailClient::new(
+        configuration.email_client.base_url,
+        sender_email,
+        configuration.email_client.authorization_token,
+        timeout,
+    );
+
+    let server =
+        run(listener, connection_pool.clone(), email_client).expect("Failed to bind address");
     let _ = spawn(server);
 
     TestApp {

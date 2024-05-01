@@ -1,4 +1,5 @@
 pub mod configuration;
+pub mod email_client;
 pub mod startup;
 pub mod telemetry;
 
@@ -21,3 +22,4 @@ mod domain {
 }
 
 pub use domain::NewSubscriber;
+pub use email_client::EmailClient;

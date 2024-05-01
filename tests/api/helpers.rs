@@ -28,6 +28,18 @@ pub struct TestApp {
     pub db_pool: PgPool,
 }
 
+impl TestApp {
+    pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
+        reqwest::Client::new()
+            .post(&format!("{}/subscriptions", &self.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+}
+
 /// Helper function that sets up a server and binds it to an address that is
 /// returned. This way, individual tests know where to send their requests.
 pub async fn spawn_app() -> TestApp {

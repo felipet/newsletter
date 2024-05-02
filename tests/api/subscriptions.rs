@@ -1,10 +1,20 @@
 use crate::helpers::spawn_app;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, ResponseTemplate};
 
 #[actix_web::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
     let test_app = spawn_app().await;
 
     let body = "name=jane%20doe&email=jane_doe%40mail.com";
+
+    // Mock server.
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&test_app.email_server)
+        .await;
+
     let response = test_app.post_subscriptions(body.into()).await;
 
     assert_eq!(200, response.status().as_u16());
@@ -59,4 +69,23 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
             description
         );
     }
+}
+
+#[actix_web::test]
+async fn subscribe_sends_a_confirmation_email_for_valid_data() {
+    // Prepare
+    let test_app = spawn_app().await;
+    let body = "name=Jane%20Doe&email=janedoe%40mail.com";
+
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&test_app.email_server)
+        .await;
+
+    // Launch the post
+    test_app.post_subscriptions(body.into()).await;
+
+    // When the mock servers gets dropped, it performs the checks.
 }

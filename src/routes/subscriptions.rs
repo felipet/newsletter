@@ -65,23 +65,7 @@ pub async fn subscribe(
         return HttpResponse::InternalServerError().finish();
     }
 
-    // A dummy link by now.
-    let confirmation_link = "https://my-api.com/subscriptions/confirm";
-    // Send a (useless) email to the new subscriber.
-    if email_client
-        .send_email(
-            new_subscriber.email,
-            "Welcome!",
-            &format!(
-                "Welcome to our newsletter!<br /> \
-                Click <a href=\"{}\">here</a> to confirm your subscription.",
-                confirmation_link
-            ),
-            &format!(
-                "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
-                confirmation_link
-            ),
-        )
+    if send_confirmation_email(&email_client, new_subscriber)
         .await
         .is_err()
     {
@@ -117,4 +101,30 @@ pub async fn insert_subscriber(
     })?;
 
     Ok(())
+}
+
+#[tracing::instrument(
+    name = "Send a confirmation email to a new subscriber",
+    skip(email_client, new_subscriber)
+)]
+pub async fn send_confirmation_email(
+    email_client: &EmailClient,
+    new_subscriber: NewSubscriber,
+) -> Result<(), reqwest::Error> {
+    // A dummy link by now.
+    let confirmation_link = "https://my-api.com/subscriptions/confirm";
+    let plain_body = format!(
+        "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
+        confirmation_link
+    );
+    let html_body = format!(
+        "Welcome to our newsletter!<br /> \
+        Click <a href=\"{}\">here</a> to confirm your subscription.",
+        confirmation_link
+    );
+
+    // Send a (useless) email to the new subscriber.
+    email_client
+        .send_email(new_subscriber.email, "Welcome!", &html_body, &plain_body)
+        .await
 }

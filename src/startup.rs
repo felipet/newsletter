@@ -44,7 +44,12 @@ impl Application {
         // Create a TcpListener to bind the address in which the service aims to listen for requests.
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = run(listener, connection_pool, email_client)?;
+        let server = run(
+            listener,
+            connection_pool,
+            email_client,
+            configuration.application.base_url,
+        )?;
 
         Ok(Self { port, server })
     }
@@ -57,6 +62,9 @@ impl Application {
         self.server.await
     }
 }
+
+/// Wrapper type for a URL.
+pub struct ApplicationBaseUrl(pub String);
 
 /// Create a new HttpServer instance.
 ///
@@ -71,11 +79,14 @@ pub fn run(
     listener: TcpListener,
     db_pool: PgPool,
     email_client: EmailClient,
+    base_url: String,
 ) -> Result<Server, std::io::Error> {
     // Wrap the DB's driver with a web::Data pointer. This way, the driver will
     // be safely shared between threads.
     let db_pool = web::Data::new(db_pool);
     let email_client = web::Data::new(email_client);
+    let base_url = web::Data::new(ApplicationBaseUrl(base_url));
+
     // Connect all the services that are featured by the newsletter app.
     let server = HttpServer::new(move || {
         App::new()
@@ -85,9 +96,12 @@ pub fn run(
             .service(routes::health_check)
             // Post subscribe endpoint.
             .service(routes::subscribe)
+            // Confirmation endpoint.
+            .service(routes::confirm)
             // State of the app: the DB's driver
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
+            .app_data(base_url.clone())
     })
     // Attach the listener to the app.
     .listen(listener)?

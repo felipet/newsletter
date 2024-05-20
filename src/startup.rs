@@ -1,7 +1,7 @@
+//! Module that includes helper functions to start the **newsletter** application.
+
 use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
-/// Module that includes helper functions to start the **newsletter** application.
-///
 use crate::routes;
 use crate::EmailClient;
 use actix_web::{dev::Server, web, App, HttpServer};

@@ -1,10 +1,11 @@
+//! Configurations module.
+//!
+//! This module includes two `struct`s: [Settings] and [DatabaseSettings] that
+//! describe all the configuration attributes that are needed to setup
+//! the execution and test environments of the **newsletter** application.
+
 use crate::domain::SubscriberEmail;
 use secrecy::{ExposeSecret, Secret};
-/// Configurations module.
-///
-/// This module includes two `struct`s: [Settings] and [DatabaseSettings] that
-/// describe all the configuration attributes that are needed to setup
-/// the execution and test environments of the **newsletter** application.
 use serde;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::{

@@ -1,4 +1,5 @@
-/// Module that includes a health check endpoint.
+//! Module that includes a health check endpoint.
+
 use actix_web::{get, HttpResponse, Responder};
 
 /// Endpoint that tells a client about the server health status.

@@ -63,22 +63,39 @@ pub async fn subscribe(
     base_url: web::Data<ApplicationBaseUrl>,
 ) -> Result<HttpResponse, SubscribeError> {
     let new_subscriber = form.0.try_into().map_err(SubscribeError::ValidationError)?;
-    let mut transaction = pool
-        .begin()
-        .await
-        .context("Failed to acquire a Postgres connection from the pool")?;
-    let subscriber_id = insert_subscriber(&mut transaction, &new_subscriber)
-        .await
-        .context("Failed to insert new subscriber in the database.")?;
-    let subscription_token = generate_subscription_token();
-    store_token(&mut transaction, subscriber_id, &subscription_token)
-        .await
-        .context("Failed to store the confirmation token for a new subscriber.")?;
 
-    transaction
-        .commit()
+    // Did the subscriber attempt to register before?
+    let user_id = check_existing_subscriber(&new_subscriber, &pool)
         .await
-        .context("Failed to commit SQL transaction to store a new subscriber.")?;
+        .context("Failed to query to the database.")?;
+
+    let subscription_token = generate_subscription_token();
+
+    match user_id {
+        None => {
+            let mut transaction = pool
+                .begin()
+                .await
+                .context("Failed to acquire a Postgres connection from the pool")?;
+            let subscriber_id = insert_subscriber(&mut transaction, &new_subscriber)
+                .await
+                .context("Failed to insert new subscriber in the database.")?;
+
+            store_token(&mut transaction, subscriber_id, &subscription_token)
+                .await
+                .context("Failed to store the confirmation token for a new subscriber.")?;
+
+            transaction
+                .commit()
+                .await
+                .context("Failed to commit SQL transaction to store a new subscriber.")?;
+        }
+        Some(id) => {
+            update_token(&pool, &id, &subscription_token)
+                .await
+                .context("Failed to update the confirmation token for a new subscriber.")?;
+        }
+    }
 
     send_confirmation_email(
         &email_client,
@@ -173,6 +190,85 @@ pub async fn store_token(
     .execute(transaction)
     .await
     .map_err(StoreTokenError)?;
+
+    Ok(())
+}
+
+/// Update a subscription confirmation token.
+///
+/// # Description
+///
+/// This function is useful when a new subscriber attempts to subscriber multiple
+/// times before an existing token gets confirmed. The existing token gets deleted
+/// and a new token is inserted waiting for the confirmation.
+#[tracing::instrument(name = "Update a subscription token in the database", skip(pool))]
+async fn update_token(
+    pool: &PgPool,
+    subscriber_id: &Uuid,
+    subscription_token: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"UPDATE subscription_tokens
+        SET subscription_token = $1
+        WHERE subscriber_id = $2"#,
+        subscription_token,
+        subscriber_id,
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+/// Check whether the email was previously registered in the DB.
+///
+/// # Description
+///
+/// This internal function performs a SQL query to check whether the email of a new
+/// subscriber was registered previously in the DB or not. If the email was registered,
+/// the ID of the client is returned, `None` is returned otherwise.
+#[tracing::instrument(
+    name = "Check if a subscriber was registered previously",
+    skip(new_subscriber, pool)
+)]
+async fn check_existing_subscriber(
+    new_subscriber: &NewSubscriber,
+    pool: &PgPool,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    // Check if the email is present in the `subscriptions` table.
+    let existing_id = sqlx::query!(
+        "SELECT id FROM subscriptions WHERE email = $1",
+        new_subscriber.email.as_ref(),
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    match existing_id {
+        Some(record) => Ok(Some(record.id)),
+        None => Ok(None),
+    }
+}
+
+/// Update the register timestamp for a subscriber
+///
+/// # Description
+///
+/// This internal function allows refreshing the timestamp that is assigned when a
+/// new subscriber attempts to register to the newsletter. This allows keeping track
+/// of the issue time of a confirmation token when a subscriber attempts to register
+/// multiple times without confirmation.
+#[tracing::instrument(
+    name = "Update register time of a unconfirmed subscriber",
+    skip(subscriber_id, pool)
+)]
+async fn update_register_time(subscriber_id: &Uuid, pool: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE subscriptions SET subscribed_at = $2 WHERE id = $1;",
+        &subscriber_id,
+        Utc::now(),
+    )
+    .execute(pool)
+    .await?;
 
     Ok(())
 }

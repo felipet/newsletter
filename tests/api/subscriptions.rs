@@ -1,4 +1,5 @@
 use crate::helpers::spawn_app;
+use uuid::Uuid;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, ResponseTemplate};
 
@@ -147,4 +148,54 @@ async fn subscribe_fails_if_there_is_a_fatal_database_error() {
     let response = test_app.post_subscriptions(body.into()).await;
     // Assert
     assert_eq!(response.status().as_u16(), 500);
+}
+
+#[actix_web::test]
+async fn subscribe_fails_if_second_subscription_attempt_returns_the_same_token() {
+    // Prepare
+    let test_app = spawn_app().await;
+    let body = "name=Jane%20Doe&email=janedoe%40mail.com";
+    let email = "janedoe@mail.com";
+
+    // Launch the post
+    test_app.post_subscriptions(body.into()).await;
+
+    // Get the associated subscriber_id
+    let result = sqlx::query!("SELECT id FROM subscriptions WHERE email = $1;", email,)
+        .fetch_optional(&test_app.db_pool)
+        .await;
+
+    let subscriber_id: Uuid = match result {
+        Ok(record) => record.unwrap().id,
+        Err(e) => panic!("Failed to execute query: {:?}", e),
+    };
+
+    let result = sqlx::query!(
+        "SELECT subscription_token FROM subscription_tokens WHERE subscriber_id = $1",
+        subscriber_id,
+    )
+    .fetch_optional(&test_app.db_pool)
+    .await;
+
+    let first_subscriber_token = match result {
+        Ok(record) => record.unwrap().subscription_token,
+        Err(e) => panic!("Failed to execute query: {:?}", e),
+    };
+
+    // Attempt a second subscription
+    test_app.post_subscriptions(body.into()).await;
+
+    let result = sqlx::query!(
+        "SELECT subscription_token FROM subscription_tokens WHERE subscriber_id = $1",
+        subscriber_id,
+    )
+    .fetch_optional(&test_app.db_pool)
+    .await;
+
+    let sec_subscriber_token = match result {
+        Ok(record) => record.unwrap().subscription_token,
+        Err(e) => panic!("Failed to execute query: {:?}", e),
+    };
+
+    assert_ne!(first_subscriber_token, sec_subscriber_token);
 }

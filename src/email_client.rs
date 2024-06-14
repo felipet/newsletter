@@ -28,7 +28,7 @@ impl EmailClient {
 
     pub async fn send_email(
         &self,
-        recipient: SubscriberEmail,
+        recipient: &SubscriberEmail,
         subject: &str,
         html_content: &str,
         text_content: &str,
@@ -147,7 +147,7 @@ mod tests {
 
         // Go for the actual test.
         let _ = email_client
-            .send_email(email(), &subject(), &content(), &content())
+            .send_email(&email(), &subject(), &content(), &content())
             .await;
 
         // When Mock goes out of scope, it checks the amount of requests given by `expect(N)`. If the number matches,
@@ -168,7 +168,7 @@ mod tests {
 
         // Go for the actual test.
         let _ = email_client
-            .send_email(email(), &subject(), &content(), &content())
+            .send_email(&email(), &subject(), &content(), &content())
             .await;
 
         // When Mock goes out of scope, it checks the amount of requests given by `expect(N)`. If the number matches,
@@ -189,7 +189,7 @@ mod tests {
 
         // Go for the actual test.
         let outcome = email_client
-            .send_email(email(), &subject(), &content(), &content())
+            .send_email(&email(), &subject(), &content(), &content())
             .await;
 
         assert_err!(outcome);
@@ -211,7 +211,7 @@ mod tests {
 
         // Go for the actual test.
         let outcome = email_client
-            .send_email(email(), &subject(), &content(), &content())
+            .send_email(&email(), &subject(), &content(), &content())
             .await;
 
         assert_err!(outcome);

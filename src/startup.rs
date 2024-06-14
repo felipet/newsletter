@@ -98,6 +98,8 @@ pub fn run(
             .service(routes::subscribe)
             // Confirmation endpoint.
             .service(routes::confirm)
+            // Publish a newsletter endpoint.
+            .service(routes::publish_newsletter)
             // State of the app: the DB's driver
             .app_data(db_pool.clone())
             .app_data(email_client.clone())

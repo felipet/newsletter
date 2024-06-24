@@ -12,6 +12,7 @@ mod routes {
 
     pub use health_check::*;
     pub use home::*;
+    pub use login::*;
     pub use newsletters::*;
     pub use subscriptions::error_chain_fmt;
     pub use subscriptions::*;
@@ -26,6 +27,14 @@ mod routes {
                 .content_type(ContentType::html())
                 .body(include_str!("routes/home/home.html"))
         }
+    }
+
+    mod login {
+        mod get;
+        mod post;
+
+        pub use get::login_form;
+        pub use post::login;
     }
 }
 

@@ -3,6 +3,7 @@
 use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
 use crate::routes;
+use crate::routes::home;
 use crate::EmailClient;
 use actix_web::{dev::Server, web, App, HttpServer};
 use sqlx::postgres::PgPoolOptions;
@@ -100,6 +101,8 @@ pub fn run(
             .service(routes::confirm)
             // Publish a newsletter endpoint.
             .service(routes::publish_newsletter)
+            // Home page
+            .service(home)
             // State of the app: the DB's driver
             .app_data(db_pool.clone())
             .app_data(email_client.clone())

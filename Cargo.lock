@@ -1031,6 +1031,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "hmac"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
+dependencies = [
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "htmlescape"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9025058dae765dee5070ec375f591e2ba14638c63feff74f13805a72e523163"
+
+[[package]]
 name = "http"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1389,6 +1404,8 @@ dependencies = [
  "claim",
  "config",
  "fake",
+ "hmac 0.12.1",
+ "htmlescape",
  "linkify",
  "once_cell",
  "quickcheck",
@@ -1399,6 +1416,7 @@ dependencies = [
  "serde 1.0.198",
  "serde-aux",
  "serde_json",
+ "sha2 0.10.8",
  "sqlx",
  "thiserror",
  "tracing",
@@ -2138,6 +2156,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha2"
+version = "0.10.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "793db75ad2bcafc3ffa7c68b215fee268f537982cd901d132f89c6343f3a3dc8"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest 0.10.7",
+]
+
+[[package]]
 name = "sharded-slab"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2238,7 +2267,7 @@ dependencies = [
  "futures-util",
  "hashlink",
  "hex",
- "hmac",
+ "hmac 0.11.0",
  "indexmap 1.9.3",
  "itoa 0.4.8",
  "libc",
@@ -2253,7 +2282,7 @@ dependencies = [
  "serde 1.0.198",
  "serde_json",
  "sha-1",
- "sha2",
+ "sha2 0.9.9",
  "smallvec",
  "sqlformat",
  "sqlx-rt",
@@ -2282,7 +2311,7 @@ dependencies = [
  "quote",
  "serde 1.0.198",
  "serde_json",
- "sha2",
+ "sha2 0.9.9",
  "sqlx-core",
  "sqlx-rt",
  "syn 1.0.109",

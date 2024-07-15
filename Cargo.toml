@@ -33,6 +33,7 @@ unicode-segmentation = "1"
 urlencoding = "2"
 uuid = { version = "0.8.1", features = ["v4"] }
 validator = "0.14"
+hex = "0.4"
 
 [dev-dependencies]
 fake = "~2.3"

@@ -4,7 +4,11 @@ use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
 use crate::routes;
 use crate::EmailClient;
-use actix_web::{dev::Server, web, App, HttpServer};
+use actix_session::storage::RedisSessionStore;
+use actix_session::SessionMiddleware;
+use actix_web::{cookie::Key, dev::Server, web, App, HttpServer};
+use actix_web_flash_messages::{storage::CookieMessageStore, FlashMessagesFramework};
+use secrecy::ExposeSecret;
 use secrecy::Secret;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
@@ -21,9 +25,11 @@ pub struct Application {
 pub struct HmacSecret(pub Secret<String>);
 
 impl Application {
-    pub async fn build(configuration: Settings) -> Result<Self, std::io::Error> {
+    pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
         // Create a connection pool to handle connections to the DB.
-        let connection_pool = get_connection_pool(&configuration.database);
+        let connection_pool = get_connection_pool(&configuration.database)
+            .await
+            .expect("Failed to connect to Postgres.");
 
         // Build an `EmailClient` to handle all the stuff related to sending mails.
         let sender_email = configuration
@@ -54,7 +60,9 @@ impl Application {
             email_client,
             configuration.application.base_url,
             configuration.application.hmac_secret,
-        )?;
+            configuration.redis_uri,
+        )
+        .await?;
 
         Ok(Self { port, server })
     }
@@ -80,24 +88,38 @@ pub struct ApplicationBaseUrl(pub String);
 /// - A [PgPool] that connects to a valid Postgres DB server.
 ///
 /// To constructs a new [HttpServer] and returns it.
-pub fn run(
+pub async fn run(
     listener: TcpListener,
     db_pool: PgPool,
     email_client: EmailClient,
     base_url: String,
     hmac_secret: Secret<String>,
-) -> Result<Server, std::io::Error> {
+    redis_uri: Secret<String>,
+) -> Result<Server, anyhow::Error> {
     // Wrap the DB's driver with a web::Data pointer. This way, the driver will
     // be safely shared between threads.
     let db_pool = web::Data::new(db_pool);
     let email_client = web::Data::new(email_client);
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
 
+    let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
+    let message_store = CookieMessageStore::builder(secret_key.clone()).build();
+    let message_framework = FlashMessagesFramework::builder(message_store).build();
+
+    let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await?;
+
     // Connect all the services that are featured by the newsletter app.
     let server = HttpServer::new(move || {
         App::new()
             // Add the Logger middleware.
             .wrap(TracingLogger::default())
+            // Flash messages middleware.
+            .wrap(message_framework.clone())
+            // Session auth tokens backend
+            .wrap(SessionMiddleware::new(
+                redis_store.clone(),
+                secret_key.clone(),
+            ))
             // Get health_check endpoint.
             .service(routes::health_check)
             // Post subscribe endpoint.
@@ -111,6 +133,8 @@ pub fn run(
             // Login form
             .service(routes::login_form)
             .service(routes::login)
+            // Admin dashboard
+            .service(routes::admin_dashboard)
             // State of the app: the DB's driver
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
@@ -125,8 +149,8 @@ pub fn run(
     Ok(server)
 }
 
-pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
+pub async fn get_connection_pool(configuration: &DatabaseSettings) -> Result<PgPool, sqlx::Error> {
     PgPoolOptions::new()
-        .connect_timeout(std::time::Duration::from_secs(2))
-        .connect_lazy_with(configuration.with_db())
+        .connect_with(configuration.with_db())
+        .await
 }

@@ -8,10 +8,7 @@ use crate::domain::SubscriberEmail;
 use secrecy::{ExposeSecret, Secret};
 use serde;
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::{
-    postgres::{PgConnectOptions, PgSslMode},
-    ConnectOptions,
-};
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
 
 /// Top level `struct` for the configuration.
 ///
@@ -27,6 +24,7 @@ pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
     pub email_client: EmailClientSettings,
+    pub redis_uri: Secret<String>,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -135,10 +133,7 @@ impl DatabaseSettings {
 
     /// Modified version of [DatabaseSettings::connection_string] that doesn't include the DB's name.
     pub fn with_db(&self) -> PgConnectOptions {
-        let mut options = self.without_db().database(&self.database_name);
-        options.log_statements(tracing::log::LevelFilter::Trace);
-
-        options
+        self.without_db().database(&self.database_name)
     }
 }
 

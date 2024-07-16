@@ -14,7 +14,7 @@ use anyhow::Context;
 use chrono::Utc;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::Deserialize;
-use sqlx::{self, PgPool, Postgres, Transaction};
+use sqlx::{self, Executor, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
 /// Data that is included in the form that comes along the POST for the endpoint.
@@ -119,7 +119,7 @@ pub async fn insert_subscriber(
 ) -> Result<Uuid, sqlx::Error> {
     let subscriber_id = Uuid::new_v4();
 
-    sqlx::query!(
+    let query = sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at, status)
         VALUES ($1, $2, $3, $4, 'pending_confirmation')
@@ -128,9 +128,9 @@ pub async fn insert_subscriber(
         new_subscriber.email.as_ref(),
         new_subscriber.name.as_ref(),
         Utc::now(),
-    )
-    .execute(transaction)
-    .await?;
+    );
+
+    transaction.execute(query).await?;
 
     Ok(subscriber_id)
 }
@@ -181,15 +181,13 @@ pub async fn store_token(
     subscriber_id: Uuid,
     subscription_token: &str,
 ) -> Result<(), StoreTokenError> {
-    sqlx::query!(
+    let query = sqlx::query!(
         r#"INSERT INTO subscription_tokens (subscription_token, subscriber_id)
         VALUES ($1, $2)"#,
         subscription_token,
         subscriber_id,
-    )
-    .execute(transaction)
-    .await
-    .map_err(StoreTokenError)?;
+    );
+    transaction.execute(query).await.map_err(StoreTokenError)?;
 
     Ok(())
 }

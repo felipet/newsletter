@@ -1,6 +1,7 @@
 pub mod authentication;
 pub mod configuration;
 pub mod email_client;
+pub mod session_state;
 pub mod startup;
 pub mod telemetry;
 
@@ -9,8 +10,8 @@ mod routes {
     mod newsletters;
     mod subscriptions;
     mod subscriptions_confirm;
-    //mod home;
 
+    pub use admin::*;
     pub use health_check::*;
     pub use home::*;
     pub use login::*;
@@ -36,6 +37,12 @@ mod routes {
 
         pub use get::login_form;
         pub use post::login;
+    }
+
+    mod admin {
+        mod dashboard;
+
+        pub use dashboard::admin_dashboard;
     }
 }
 
